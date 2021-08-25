@@ -11,7 +11,7 @@ exports.aceCreateDomLine = function (name, args) {
     let src;
     cls = args.cls.replace(/(^| )image:(\S+)/g, (x0, space, image) => {
       //src = "../html/invalid.png";
-      src = "ep_previewimages/static/html/invalid.png";
+      src = "../ep_previewimages/static/html/invalid.png";
       return `${space}image image_${image}`;
     });
 

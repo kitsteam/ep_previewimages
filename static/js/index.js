@@ -1,7 +1,7 @@
 exports.aceGetFilterStack = function (name, context) {
   return [
     context.linestylefilter.getRegexpFilter(
-        new RegExp('\\bhttps?://\\S+\\.([pP][nN][gG]|[jJ][pP][eE]?[gG]|[gG][iI][fF]|[bB][mM][pP]|[sS][vV][gG])([?&;]\\S*|(?=\\s|$))', 'g'), 'image'),
+        new RegExp('\\bhttps://(\\S+wikimedia\\S+)|(\\S+unsplash\\S+)\\.([pP][nN][gG]|[jJ][pP][eE]?[gG]|[gG][iI][fF]|[bB][mM][pP]|[sS][vV][gG])([?&;]\\S*|(?=\\s|$))', 'g'), 'image'),
   ];
 };
 

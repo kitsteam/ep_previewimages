@@ -1,15 +1,18 @@
 var $ = require('ep_etherpad-lite/static/js/rjquery').$;
+var editorInfo;
+var start;
+var src;
 
 exports.aceGetFilterStack = function (name, context) {
     console.log("aceGetFilterStack called");
   return [
     context.linestylefilter.getRegexpFilter(
-        new RegExp('\\bhttps://(\\S+wikimedia\\S+)\\.([pP][nN][gG]|[jJ][pP][eE]?[gG]|[gG][iI][fF]|[bB][mM][pP]|[sS][vV][gG])([?&;]\\S*|(?=\\s|$))', 'g'), 'image'),
+        new RegExp('https://(\\S+wikimedia\\S+)\\.([pP][nN][gG]|[jJ][pP][eE]?[gG]|[gG][iI][fF]|[bB][mM][pP]|[sS][vV][gG])imagesrc([?&;]\\S*|(?=\\s|$))', 'g'), 'image'),
   ];
 };
 
 /* Convert the classes into a tag */
-exports.aceCreateDomLine = function(name, args) {
+/*exports.aceCreateDomLine = function(name, args) {
     console.log("aceCreateDomLine called:", args);
     var cls = args.cls;
     var domline = args.domline;
@@ -25,7 +28,7 @@ exports.aceCreateDomLine = function(name, args) {
       }
       return `${space}image image_${image}`;
     });*/
-    var modifier = {};
+    /*var modifier = {};
     if(src != null) {
         src = src[1];
 
@@ -41,7 +44,7 @@ exports.aceCreateDomLine = function(name, args) {
         return modifier;
     }
     return [];
-}
+}*/
 
 /* Convert the classes into a tag */
 /*exports.aceCreateDomLine = function(name, context) {
@@ -67,13 +70,12 @@ exports.aceCreateDomLine = function(name, args) {
     return [];
 }*/
 
-/*exports.aceCreateDomLine = function (name, args) {
+exports.aceCreateDomLine = function (name, args) {
   
   if (args.cls.indexOf('image') > -1) { // If it's an image
     console.log("aceCreateDomLine called:",args);
-    let src;
     cls = args.cls.replace(/(^| )image:(\S+)/g, (x0, space, image) => {
-      src = image;
+      src = image.replace('imagesrc','');
       console.log("SRC:", src);
       if (!imageExists(src)) {
           console.log("Wir landen richtig");
@@ -83,9 +85,18 @@ exports.aceCreateDomLine = function(name, args) {
       }
       return `${space}image image_${image}`;
     });
+      
+    //let line = editorInfo.ace_caretLine();
+    //let col = editorInfo.ace_caretColumn();
 
-
+    /*console.log("Start:", start);
+    var end = start;
+    end[1] = start[1] + src.length;
+    console.log("End:", end);
+    editorInfo.ace_performDocumentReplaceRange(start, end, "");*/
     // Note the additional span wrapper here is required to stop errors if someone types text after an image url
+      
+    console.log("CLS", cls);
     return [{
       cls,
       //extraOpenTags: `<span style="display:block;"><img src="${src}" onerror="this.src='https://raw.githubusercontent.com/tjark002/ep_previewimages/master/static/html/invalid.png';" style="max-width:100%" /></span>`,
@@ -93,7 +104,41 @@ exports.aceCreateDomLine = function(name, args) {
       extraCloseTags: '',
     }];
   }
-};*/
+};
+
+exports.acePostWriteDomLineHTML = function (name, context) {
+    if (!src) {
+        return
+    } else {
+        //context.node.remove();
+        console.log("acePostWriteDomLineHTML");
+        var link = context.node.firstChild.getElementsByTagName('a')[0];
+        var span = context.node.childNodes[1];
+        console.log("Initial link: ", link);
+        console.log("Initial span: ", span);
+        if (!link) {
+            for (var i = 0; i < context.node.childNodes.length; i++) {
+                var node = context.node.childNodes[i];
+                link = node.getElementsByTagName('a')[0];
+                if (link) {
+                    span = context.node.childNodes[i+1];
+                    i = 1000;
+                } 
+            }
+        }
+        if (!link) return;
+        console.log("Perfect link", link);
+        console.log("Perfect span: ", span);
+        link.remove();
+        if (!span) return;
+        span.remove();
+        /*var picline = $("#"+context.node.id).find("a");
+        picline.css("display", "none");
+        console.log("picline", picline);*/
+        //picline.remove();
+    }
+    src = null;
+}
 
 function imageExists(image_url){
 
@@ -124,8 +169,9 @@ exports.postAceInit = function(hook, context) {
     /* Event: User creates new hyperlink */
     $('.hyperlink-save').on('click',function() {
         var url = $('.hyperlink-url').val();
+        //caretInfo(context);
         context.ace.callWithAce(function(ace) {
-            ace.ace_doInsertLink(url);
+            ace.ace_doInsertLink(url+"imagesrc ", context);
         }, 'insertLink', true);
         $('.hyperlink-url').val('');
         $('.hyperlink-dialog').removeClass('popup-show');
@@ -150,11 +196,40 @@ exports.aceAttribsToClasses = function(hook, context) {
 
 /* I don't know what this does */
 exports.aceInitialized = function(hook, context) {
-    var editorInfo = context.editorInfo;
+    editorInfo = context.editorInfo;
     editorInfo.ace_doInsertLink = doInsertLink.bind(context);
 }
 
-function doInsertLink(url) {
+function doInsertLink(url, context) {
+    console.log("doInsertLink called:",url);
+    var rex = new RegExp('https://(\\S+wikimedia\\S+)\\.([pP][nN][gG]|[jJ][pP][eE]?[gG]|[gG][iI][fF]|[bB][mM][pP]|[sS][vV][gG])imagesrc([?&;]\\S*|(?=\\s|$))');
+    if (rex.test(url)) {
+        let line = editorInfo.ace_caretLine();
+        let col = editorInfo.ace_caretColumn();
+
+        console.log(line, col);
+        var rep = this.rep,
+            documentAttributeManager = this.documentAttributeManager;
+        if(!(rep.selStart)) {
+            return;
+        }
+        start = rep.selStart;
+        console.log("Passiert hier der Fehler?")
+        editorInfo.ace_replaceRange(start, start+1, url);
+        console.log("Nein"); 
+    } else {
+        return;
+    }
+
+    /*console.log("doInsertLink rep.start:",rep.selStart, rep.selStart[1]+1);
+    var url = ["url",url];
+    var selEnd = rep.selStart;
+    selEnd[1] = rep.selStart[1] + 1;
+    console.log(selEnd);
+    documentAttributeManager.setAttributesOnRange(rep.selStart, rep.selStart+1, [url]);*/
+}
+
+/*function doInsertLink(url) {
     console.log("doInsertLink called:",url);
     var rep = this.rep,
         documentAttributeManager = this.documentAttributeManager;
@@ -163,17 +238,17 @@ function doInsertLink(url) {
     }
     var url = ["url",url];
     documentAttributeManager.setAttributesOnRange(rep.selStart, rep.selEnd, [url]);
-}
+}*/
 
-exports.collectContentPre = function(hook,context) {
+/*function caretInfo(args) {
+    let line = args.editorInfo.ace_caretLine();
+    let col = args.editorInfo.ace_caretColumn();
+    console.log(line, col);
+}*/
+
+/*exports.collectContentPre = function(hook,context) {
     var url = /(?:^| )url-(\S*)/.exec(context.cls);
     if(url) {
         context.cc.doAttrib(context.state,"url::" + url);
     }
-}
-
-exports.aceKeyEvent = function(hook_name, args, cb) {
-    let line = args.editorInfo.ace_caretLine();
-    let col = args.editorInfo.ace_caretColumn();
-    console.log(line, col);
-}
+}*/

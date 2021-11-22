@@ -1,1 +1,1 @@
-Please use ep_image_upload
+ep_previewimages: Upload a picture from wikicommons

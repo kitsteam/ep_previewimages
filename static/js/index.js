@@ -156,32 +156,33 @@ exports.postAceInit = function(hook, context) {
     if (!$('#editorcontainerbox').hasClass('flex-layout')) {
         $.gritter.add({
             title: "Error",
-            text: "Ep_embed_hyperlink2: Please upgrade to etherpad 1.9 for this plugin to work correctly",
+            text: "Ep_previewimages: Please upgrade to etherpad 1.9 for this plugin to work correctly",
             sticky: true,
             class_name: "error"
         })
     }
     /* Event: User clicks editbar button */
-    $('.hyperlink-icon').on('click',function() {
-        $('.hyperlink-dialog').toggleClass('popup-show');
-        $('.hyperlink-dialog').css('left', $('.hyperlink-icon').offset().left - 12);
+    $('.imagelink-icon').on('click',function() {
+        console.log("wird aufgerufen");
+        $('.imagelink-dialog').toggleClass('popup-show');
+        $('.imagelink-dialog').css('left', $('.imagelink-icon').offset().left - 12);
     });
-    /* Event: User creates new hyperlink */
-    $('.hyperlink-save').on('click',function() {
-        var url = $('.hyperlink-url').val();
+    /* Event: User creates new imagelink */
+    $('.imagelink-save').on('click',function() {
+        var url = $('.imagelink-url').val();
         //caretInfo(context);
         context.ace.callWithAce(function(ace) {
             ace.ace_doInsertLink(url+"imagesrc ", context);
         }, 'insertLink', true);
-        $('.hyperlink-url').val('');
-        $('.hyperlink-dialog').removeClass('popup-show');
+        $('.imagelink-url').val('');
+        $('.imagelink-dialog').removeClass('popup-show');
     });
     /* User press Enter on url input */
-    $('.hyperlink-url').on("keyup", function(e)
+    $('.imagelink-url').on("keyup", function(e)
     {
         if(e.keyCode == 13) // ENTER key
         {
-          $('.hyperlink-save').click();
+          $('.imagelink-save').click();
         }
     });
 }

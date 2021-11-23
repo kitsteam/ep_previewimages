@@ -2,7 +2,7 @@
   "name": "ep_previewimages",
   "description": "Bildvorschau, Kopiere einen Link in das Dokument und lade das Bild",
   "version": "1.0.0",
-  "author": "Tjark Harjes",
+  "author": "johnyma22 (John McLear) <john@mclear.co.uk> (forked version), tjark002 (Tjark Harjes) <tjark.harjes@visionz.de> (new version)",
   "contributors": [],
   "dependencies": {},
   "repository": {

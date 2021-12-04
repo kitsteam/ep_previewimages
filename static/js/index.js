@@ -169,11 +169,14 @@ exports.postAceInit = function(hook, context) {
     });
     /* Event: User creates new imagelink */
     $('.imagelink-save').on('click',function() {
+        console.log("Test");
         var url = $('.imagelink-url').val();
+        console.log("Läuft das hier?" + url);
+        doInsertImage(url+"imagesrc ", context);
         //caretInfo(context);
-        context.ace.callWithAce(function(ace) {
-            ace.ace_doInsertLink(url+"imagesrc ", context);
-        }, 'insertLink', true);
+        /*context.ace.callWithAce(function(ace) {
+            ace.ace_doInsertImage(url+"imagesrc ", context);
+        }, 'insertLink', true);*/
         $('.imagelink-url').val('');
         $('.imagelink-dialog').removeClass('popup-show');
     });
@@ -198,25 +201,29 @@ exports.aceAttribsToClasses = function(hook, context) {
 /* I don't know what this does */
 exports.aceInitialized = function(hook, context) {
     editorInfo = context.editorInfo;
-    editorInfo.ace_doInsertLink = doInsertLink.bind(context);
+    editorInfo.ace_doInsertImage = doInsertImage.bind(context);
 }
 
-function doInsertLink(url, context) {
-    console.log("doInsertLink called:",url);
+function doInsertImage(url, context) {
+    console.log("doInsertImage called:",url);
     var rex = new RegExp('https://(\\S+wikimedia\\S+)\\.([pP][nN][gG]|[jJ][pP][eE]?[gG]|[gG][iI][fF]|[bB][mM][pP]|[sS][vV][gG])imagesrc([?&;]\\S*|(?=\\s|$))');
     if (rex.test(url)) {
         let line = editorInfo.ace_caretLine();
         let col = editorInfo.ace_caretColumn();
 
         console.log(line, col);
-        var rep = this.rep,
+        /*var rep = this.rep,
             documentAttributeManager = this.documentAttributeManager;
         if(!(rep.selStart)) {
             return;
         }
         start = rep.selStart;
         console.log("Passiert hier der Fehler?")
-        editorInfo.ace_replaceRange(start, start+1, url);
+        console.log([line, col]);
+        console.log([line, col+1]);
+        console.log(start);
+        console.log(start +1);*/
+        editorInfo.ace_replaceRange([line, col], [line, col], url);
         console.log("Nein"); 
     } else {
         return;

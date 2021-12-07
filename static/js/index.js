@@ -3,13 +3,13 @@ var editorInfo;
 var start;
 var src;
 
-exports.aceGetFilterStack = function (name, context) {
+/*exports.aceGetFilterStack = function (name, context) {
     console.log("aceGetFilterStack called");
   return [
     context.linestylefilter.getRegexpFilter(
         new RegExp('https://(\\S+wikimedia\\S+)\\.([pP][nN][gG]|[jJ][pP][eE]?[gG]|[gG][iI][fF]|[bB][mM][pP]|[sS][vV][gG])imagesrc([?&;]\\S*|(?=\\s|$))', 'g'), 'image'),
   ];
-};
+};*/
 
 /* Convert the classes into a tag */
 /*exports.aceCreateDomLine = function(name, args) {
@@ -112,6 +112,9 @@ exports.acePostWriteDomLineHTML = function (name, context) {
     } else {
         //context.node.remove();
         console.log("acePostWriteDomLineHTML");
+        console.log(context.parenElement);
+        console.log(context.node.parenElement);
+        console.log(context.node);
         var link = context.node.firstChild.getElementsByTagName('a')[0];
         var span = context.node.childNodes[1];
         console.log("Initial link: ", link);
@@ -122,16 +125,17 @@ exports.acePostWriteDomLineHTML = function (name, context) {
                 link = node.getElementsByTagName('a')[0];
                 if (link) {
                     span = context.node.childNodes[i+1];
-                    i = 1000;
+                    i = 10000;
                 } 
             }
         }
         if (!link) return;
         console.log("Perfect link", link);
         console.log("Perfect span: ", span);
-        link.remove();
+        //link.remove();
         if (!span) return;
-        span.remove();
+        //span.remove();
+        //innerDocBody.append("<div></div>");
         /*var picline = $("#"+context.node.id).find("a");
         picline.css("display", "none");
         console.log("picline", picline);*/
@@ -150,6 +154,18 @@ function imageExists(image_url){
     return http.status != 404;
 
 }
+
+const image = {
+  removeImage(lineNumber) {
+    const documentAttributeManager = this.documentAttributeManager;
+    documentAttributeManager.removeAttributeOnLine(lineNumber, 'src');
+  },
+  addImage(lineNumber, src) {
+    const documentAttributeManager = this.documentAttributeManager;
+      console.log("addImage src:", src);
+    documentAttributeManager.setAttributeOnLine(lineNumber, 'src', src);
+  },
+};
 
 /* Bind the event handler to the toolbar buttons */
 exports.postAceInit = function(hook, context) {
@@ -172,8 +188,13 @@ exports.postAceInit = function(hook, context) {
         console.log("Test");
         var url = $('.imagelink-url').val();
         console.log("Läuft das hier?" + url);
-        doInsertImage(url+"imagesrc ", context);
+        //doInsertImage(url+"imagesrc ", context);
         //caretInfo(context);
+        context.ace.callWithAce((ace) => {
+            const imageLineNr = _handleNewLines(ace);
+            ace.ace_addImage(imageLineNr, url);
+            ace.ace_doReturnKey();
+          }, 'url', true);
         /*context.ace.callWithAce(function(ace) {
             ace.ace_doInsertImage(url+"imagesrc ", context);
         }, 'insertLink', true);*/
@@ -191,18 +212,49 @@ exports.postAceInit = function(hook, context) {
 }
 
 exports.aceAttribsToClasses = function(hook, context) {
-    if(context.key == 'url'){
+    console.log("aceAttribsToClasses");
+    if (context.key === 'src') {
+        console.log("aceAttribsToClasses");
+        return [`src:${context.value}`];
+    }
+    /*if(context.key == 'url'){
         var url = context.value;
         return ['url-' + url ];
-    }
+    }*/
 }
+
+exports.aceRegisterBlockElements = () => ['src'];
 
 
 /* I don't know what this does */
 exports.aceInitialized = function(hook, context) {
     editorInfo = context.editorInfo;
+    editorInfo.ace_addImage = image.addImage.bind(context);
+    editorInfo.ace_removeImage = image.removeImage.bind(context);
     editorInfo.ace_doInsertImage = doInsertImage.bind(context);
 }
+
+// Rewrite the DOM contents when an IMG attribute is discovered
+exports.aceDomLineProcessLineAttributes = (name, context) => {
+    console.log("ep_previewimages aceDomLineProcessLineAttributes", context.cls);
+  const imgType = (/(?:^| )src:([^> ]*)/).exec(context.cls);
+    console.log("imgType", imgType);
+  if (!imgType) return [];
+  // const randomId = Math.floor((Math.random() * 100000) + 1);
+  if (imgType[1]) {
+    const preHtml = `<img src="${imgType[1]}" style="max-width:100%" />`;
+    const postHtml = '';
+    const modifier = {
+      preHtml,
+      postHtml,
+      processedMarker: true,
+    };
+
+    return [modifier];
+  }
+
+  return [];
+};
 
 function doInsertImage(url, context) {
     console.log("doInsertImage called:",url);
@@ -223,7 +275,10 @@ function doInsertImage(url, context) {
         console.log([line, col+1]);
         console.log(start);
         console.log(start +1);*/
-        editorInfo.ace_replaceRange([line, col], [line, col], url);
+        documentAttributeManager = this.documentAttributeManager;
+        console.log(documentAttributeManager);
+        documentAttributeManager.setAttributeOnLine(line, 'src', url);
+        //editorInfo.ace_replaceRange([line, col], [line, col], url);
         console.log("Nein"); 
     } else {
         return;
@@ -260,3 +315,24 @@ function doInsertImage(url, context) {
         context.cc.doAttrib(context.state,"url::" + url);
     }
 }*/
+
+const _handleNewLines = (ace) => {
+  const rep = ace.ace_getRep();
+  const lineNumber = rep.selStart[0];
+  const curLine = rep.lines.atIndex(lineNumber);
+  if (curLine.text) {
+    ace.ace_doReturnKey();
+
+    return lineNumber + 1;
+  }
+
+  return lineNumber;
+};
+
+exports.collectContentPre = function(hook,context) {
+    var url = /(?:^| )src:(\S*)/.exec(context.cls);
+    if(url) {
+        context.cc.doAttrib(context.state,"url::" + url);
+    }
+}
+
